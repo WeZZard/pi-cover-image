@@ -9,7 +9,7 @@
     "subagents": { "agents": ["./agents"] }
   },
   "dependencies": {
-    "pi-image-gen": "file:../pi-image-gen"
+    "pi-image-gen": "github:WeZZard/pi-image-gen"
   },
   "bundledDependencies": ["pi-image-gen"]
 }
