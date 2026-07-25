@@ -63,10 +63,14 @@ title:
   main: <verbatim substring>
   placement: <where on the banner>
   relative_size: <kicker : main, e.g. 1:2>
-artists:
-  - name: <artist>
-    why: <one clause — how this artist's layout matches the direction>
-  - name: <artist>
+films:
+  - title: <film title>
+    year: <release year>
+    designer: <poster designer, or unknown>
+    why: <one clause — how this film's poster layout matches the direction>
+  - title: <film title>
+    year: <release year>
+    designer: <poster designer, or unknown>
     why: <one clause>
 ```
 

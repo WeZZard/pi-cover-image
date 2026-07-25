@@ -1,6 +1,6 @@
 ---
 name: cover-image
-description: Create a cover image for a target surface (X Article, 微信公众号头条/图片消息, 小红书, or a generic ratio). An idea-extractor reads the article and outputs idea + rhetoric + orientation; palette-planner and layout-planner develop palette and layout directions in parallel and recommend artists; artist-works downloads works; features are extracted and combined into a pure-text generation prompt — no image is sent to the generator.
+description: Create a cover image for a target surface (X Article, 微信公众号头条/图片消息, 小红书, or a generic ratio). An idea-extractor reads the article and outputs idea + rhetoric + orientation; palette-planner and layout-planner develop palette and layout directions in parallel — palette recommends artworks, layout recommends film posters from a film poster database (layout sources are film posters ONLY); works and posters are downloaded; features are extracted and combined into a pure-text generation prompt — no image is sent to the generator.
 ---
 
 # Cover Image
@@ -8,9 +8,9 @@ description: Create a cover image for a target surface (X Article, 微信公众�
 Create a cover image for a target **surface**. The flow splits into:
 - **Concept** (from the article): idea → rhetoric → orientation — all in one clean context.
 - **Palette** (parallel): palette-planner develops a palette direction + recommends palette artists.
-- **Layout** (parallel): layout-planner develops a layout direction + recommends layout artists.
-- **Download**: artist-works finds and downloads works for all recommended artists.
-- **Extract + Generate**: palette features from palette works + layout features from layout works → pure-text generation prompt (no image sent).
+- **Layout** (parallel): layout-planner develops a layout direction + recommends films whose posters embody it. Layout references come ONLY from film posters located on a film poster database — never paintings, prints, or graphic-design posters.
+- **Download**: artist-works finds palette artworks (Google Art Project / Wikimedia) and layout film posters (film poster database); both are downloaded.
+- **Extract + Generate**: palette features from palette works + layout features from layout posters → pure-text generation prompt (no image sent).
 
 References under `references/`:
 - `surfaces.md` — the **surface registry**: one row per surface with `aspectRatio`, `safeArea`, `bleed`, `text`, `cropBehavior`, `filename`, and a `detail` path. Read this first to offer the surface choice and to load each surface's config.
@@ -23,8 +23,8 @@ References under `references/`:
 Subagents (spawned via the `subagent` tool from `pi-subagents`, wired in as a bundled dependency — see **Subagent runtime** below):
 - `idea-extractor` — reads the article in a clean context; extracts idea (3 words) + creates rhetoric (1 device + target) + orientation (color/tone).
 - `palette-planner` — given idea + rhetoric + orientation, develops a palette direction + recommends 2–3 palette artists.
-- `layout-planner` — given idea + rhetoric + orientation + surface constraint, develops a layout direction + recommends 2–3 layout artists.
-- `artist-works` — agentically searches the web for all recommended artists' works; records work + reason + source URL.
+- `layout-planner` — given idea + rhetoric + orientation + surface constraint, develops a layout direction + recommends 2–3 films whose posters embody it.
+- `artist-works` — agentically searches the web: palette artists → artworks (Google Art Project / Wikimedia); layout films → actual film posters on a film poster database, with film + year + designer + database URL recorded.
 - `artwork-feature-extractor` — views downloaded works and extracts visual key features as text (one per image).
 - `layout-generator` — views downloaded works + surface constraint, extracts spatial tendencies, writes layout rules.
 - `prompt-composer` — takes all intermediate products (rhetoric, palette direction + features, layout direction + features, surface constraints) and composes the final generation prompt as markdown text. Kimi K3.
@@ -87,11 +87,11 @@ Use a fresh temp run dir per run (e.g. `$(mktemp -d -t cover-image-XXXX)`). Writ
   meta.json                     # article-path, surface, output-dir, timestamp
   01-idea-extractor.json        # idea (3 words) + rhetoric (device + target) + orientation + article_title
   02-palette-planner-<rhetoric-id>.json # one palette direction + artists per selected rhetoric
-  03-layout-planner-<rhetoric-id>.json  # one layout direction + title block + artists per selected rhetoric
-  04-artist-works.json          # all works, grouped by selected rhetoric and palette/layout role
-  05-downloads/                 # downloaded artworks (all)
+  03-layout-planner-<rhetoric-id>.json  # one layout direction + title block + films per selected rhetoric
+  04-artist-works.json          # all works (palette) + film posters (layout), grouped by rhetoric and role
+  05-downloads/                 # downloaded artworks and posters (all)
   06-palette-features-<rhetoric-id>.json # palette features for one rhetoric's palette artists
-  07-layout-features-<rhetoric-id>.json  # layout features for one rhetoric's layout artists
+  07-layout-features-<rhetoric-id>.json  # layout features for one rhetoric's layout posters
   08-generation-prompts/        # one .md per candidate, written before generation
   09-candidates/                # generated candidate PNGs (2-3)
   10-jury/                      # one blind-jury verdict .md per candidate
@@ -120,13 +120,13 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 2. **Idea + rhetoric + orientation + article title.** Spawn `idea-extractor` with the article path AND `references/poster-principles.md` AND `references/visual-rhetoric.md` AND the slop memory file when it exists (see **Slop memory**). It reviews the poster principles, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (with per-test breakdown and the two runners-up). It also carries the article's frontmatter `title` **verbatim** as `article_title` — it does NOT split or rephrase it; splitting is a layout decision. **Write** the full output to `01-idea-extractor.json`. Select two rhetoric tracks for this run: `chosen` and `runner-up-1`. Each track owns its own palette, layout, seed artworks, features, and generation prompt.
 3. **[parallel] Palette directions.** For EACH selected rhetoric track (`chosen`, `runner-up-1`), spawn `palette-planner` with that track's idea, rhetoric, and orientation. **Write** one result per track to `02-palette-planner-<rhetoric-id>.json`.
 4. **[parallel] Layout directions.** For EACH selected rhetoric track, spawn `layout-planner` with that track's idea, rhetoric, orientation, surface constraint, article title, and `references/titling.md`. **Write** one result per track to `03-layout-planner-<rhetoric-id>.json`. All four planners are independent — run them concurrently.
-5. **Find works.** Spawn `artist-works` with every artist from both palette/layout planners, tagged with its rhetoric track, plus that track's rhetoric target. **Write** to `04-artist-works.json`.
-6. **Download works.** For each found work, download with `fetch.py` into `05-downloads/`, retaining its rhetoric-track tag.
+5. **Find works + posters.** Spawn `artist-works` with every palette artist and every layout film from both tracks, each tagged with its rhetoric track and its role (palette / layout), plus that track's rhetoric target. Palette artists are located on Google Art Project / Wikimedia; layout films are located as actual posters on a film poster database (Wikimedia Commons first, then IMPAwards, then MoviePosterDB / CineMaterial), each with film + year + designer (or unknown) + database name + page URL + image URL. **Write** to `04-artist-works.json`.
+6. **Download works + posters.** For each palette work, download with `fetch.py` into `05-downloads/`. For each layout poster, download the recorded `image_url` directly (plain HTTP) into `05-downloads/`; if the database page exposes no direct image URL, fetch the page, extract the poster image, and download that. Retain every file's rhetoric-track and role tag.
 7. **[parallel] Extract palette features.** Spawn one `artwork-feature-extractor` per downloaded palette work, across BOTH tracks, all concurrently. **Write** one grouped result per track to `06-palette-features-<rhetoric-id>.json`.
-8. **[parallel] Extract layout features.** Spawn one `artwork-feature-extractor` per downloaded layout work, across BOTH tracks, all concurrently. **Write** one grouped result per track to `07-layout-features-<rhetoric-id>.json`. Steps 7 and 8 may overlap; the runtime's queue handles overflow.
-9. **Generate.** Each rhetoric track is independently art-directed. Spawn `prompt-composer` once per track, passing ONLY that track's rhetoric, palette direction/features, layout direction/features, and the shared surface constraint; write its candidate prompt(s) before generation. Generate two candidates from the `chosen` track and one from `runner-up-1`, each from the matching prompt, to `09-candidates/`. This prevents one weak rhetoric from poisoning the whole set and prevents a runner-up's content from being forced into the chosen rhetoric's layout.
+8. **[parallel] Extract layout features.** Spawn one `artwork-feature-extractor` per downloaded layout poster, across BOTH tracks, all concurrently. **Write** one grouped result per track to `07-layout-features-<rhetoric-id>.json`. Steps 7 and 8 may overlap; the runtime's queue handles overflow.
+9. **Generate.** Each rhetoric track is independently art-directed. Spawn `prompt-composer` once per track, passing ONLY that track's rhetoric, palette direction/features, layout direction/features, **that track's layout provenance** (film + year + designer + database + page URL per layout source — the composer refuses to compose without it), and the shared surface constraint; write its candidate prompt(s) before generation. Generate two candidates from the `chosen` track and one from `runner-up-1`, each from the matching prompt, to `09-candidates/`. This prevents one weak rhetoric from poisoning the whole set and prevents a runner-up's content from being forced into the chosen rhetoric's layout.
 10. **[parallel] Blind jury.** Spawn one `slop-juror` per candidate — all concurrently, each in a fresh context, each given ONLY the candidate's image path and the criterion (no article, no rhetoric, no pipeline context: jurors stay blind). **Write** each verdict verbatim to `10-jury/candidate-<n>.md`, then append every `yes`/`borderline` finding to the slop memory (see **Slop memory**). The jury is **advisory**: verdicts are presented with the candidates; the user rules.
-11. **Record provenance.** Write `11-provenance.json` mapping each candidate to its rhetoric (chosen / runner-up), palette source + layout source + features, the backend that generated it (with any ratio deviation), and its jury verdict.
+11. **Record provenance.** Write `11-provenance.json` mapping each candidate to its rhetoric (chosen / runner-up), palette source (artist + work + URL) + layout source (film + year + designer + database + page URL) + features, the backend that generated it (with any ratio deviation), and its jury verdict.
 12. **Ship + check.** Present the candidates WITH their jury verdicts; copy the user's pick to `12-final.png`, then to `output-dir` with the surface's `filename` (and copy `11-provenance.json` alongside if useful). Run `final-checks-verifier` (passing `article_title` as ground truth for the on-image text) for a light visual self-check. If the user rejects every candidate, choose the explicit next mode: a new **rerun** for a fresh attempt, or a **checkpoint resume** from stage 2 for slop-driven rhetoric repair / stage 9 for a taste-driven generation repair. The rigorous SAM-based crop-safety check is the host project's job (e.g. its preflight) — this skill does not ship a SAM stage. The host project handles any post-placement (e.g. copying into a post directory) and its own preflight — this skill stops at writing the cover to `output-dir`.
 
 ## Stacking rules
@@ -134,8 +134,9 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 **MUST:**
 
 - Let `idea-extractor` read the article in a clean context; it creates idea + rhetoric + orientation — do not hardcode any of them.
-- Select the chosen rhetoric and first runner-up as separate tracks; run the palette/layout planners, artwork lookup, and feature extraction once **per track**. Do not use the chosen track's art direction to render the runner-up.
-- Let `artist-works` find works for every artist from every track; keep each work tagged with its track and palette/layout role.
+- Select the chosen rhetoric and first runner-up as separate tracks; run the palette/layout planners, source lookup, and feature extraction once **per track**. Do not use the chosen track's art direction to render the runner-up.
+- Keep the source split hard: layout sources come ONLY from film posters located on a film poster database; palette sources come ONLY from artworks (Google Art Project / Wikimedia). A painting, print, or design poster is never a layout source, whatever its composition.
+- Let `artist-works` find works and posters for every artist and film from every track; keep each source tagged with its track and palette/layout role.
 - Do NOT send any artwork image to the generator — the generator works from text only.
 - Let `prompt-composer` compose each track's prompt from only that track's intermediate products — do not compose it yourself.
 - Render the title **verbatim** from each track's `layout-planner` title block (`article_title` / `kicker` / `main`). Do not invent, rephrase, or re-split cover text.
@@ -150,6 +151,7 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 - Send a prompt to the generator that differs from what is written in `08-generation-prompts/candidate-<n>.md`, or generate before the candidate file is written.
 - Invent or rephrase the cover title — it comes from `idea-extractor`'s `article_title` and is typeset by `layout-planner`; the main agent never authors or splits it.
 - Mix palette and layout sources — keep them separate until the generation prompt.
+- Accept an artwork as a layout source, or compose a prompt whose layout provenance is missing or non-film — the composer returns REFUSED and the lookup step must be re-run.
 - Skip provenance, the blind jury, or the final visual checks.
 - Commit the slop memory to git — it is local, gitignored learning.
 - Let a juror see anything but its one image and the criterion.
