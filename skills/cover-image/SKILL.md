@@ -48,9 +48,25 @@ The pipeline keeps a **local, per-host memory of blind-jury slop findings** at `
 - **Read:** pass the memory file to `idea-extractor` (step 2) whenever it exists — recorded tropes are banned rhetoric targets. Never pass it to a juror: jurors stay blind.
 - **Ignore:** the memory is local learning, not source. It MUST be gitignored in the host project (add `.pi/cover-image/` to the host's `.gitignore`); never commit it.
 
-## Stage resume
+## Run modes
 
-Every stage's output is a file in the run dir, so a run can restart from any stage instead of from zero. To **resume from stage N**: reuse the existing run dir, verify the artifacts of stages `1..N-1` are present (the layout above maps stage → file), add `"resumed-from": N` to `meta.json`, and re-execute from stage N onward. Restart far enough back to cover the stage whose output is suspect: suspect rhetoric → stage 2; suspect palette/layout → stages 3/4; suspect prompt → stage 9 (regeneration reuses `05-downloads/` and the features); suspect generation only → re-run `image-gen` on the existing `08-generation-prompts/`. When a resume follows a slop verdict, append the rejected tropes to the spawning prompt of the resumed stage as exclusion constraints (they are already in the slop memory).
+Resolve the execution mode **before** creating or selecting a run dir. The mode is part of the run contract, recorded in `meta.json`; do not infer it from the presence of an old run dir.
+
+### 1. New task — default
+
+When the caller does not explicitly name a mode, this is a **new task**. Create and use a fresh run dir under the normal timestamped naming rule. Never read, copy, or alter an earlier run's artifacts.
+
+### 2. Rerun
+
+When the caller explicitly asks to run an earlier task again, this is a **rerun**. Create and use a fresh timestamped run dir, exactly as for a new task. Set `"mode": "rerun"` and `"source-run": "<prior run dir>"` in the new run's `meta.json`; retain the article path, surface, output directory, and any user-specified title override from the source run, but execute every stage again. The source run is immutable provenance — never write into it.
+
+### 3. Checkpoint resume
+
+When the caller explicitly asks to continue an earlier task **from stage N**, this is a **checkpoint resume**. This is the only mode allowed to use the original run dir. Before re-executing, verify the artifacts from stages `1..N-1`, record `"mode": "checkpoint-resume"`, `"resume-from-stage": N`, and a UTC timestamp in that run's `meta.json`, then re-execute stage N and every following stage in the same dir.
+
+If any outputs at or after stage N already exist, copy them to `revisions/<UTC>/` inside the same run dir before overwriting them. The checkpoint remains the active run, while the snapshot preserves the discarded downstream attempt for diagnosis.
+
+Restart far enough back to cover the stage whose output is suspect: suspect rhetoric → stage 2; suspect palette/layout → stages 3/4; suspect prompt → stage 9; suspect generation only → re-run `image-gen` on the existing `08-generation-prompts/`. When a checkpoint resume follows a slop verdict, append the rejected tropes to the spawning prompt of the resumed stage as exclusion constraints (they are already in the slop memory).
 
 ## Concurrency
 
@@ -91,11 +107,16 @@ The final image (`12-final.png`) and `11-provenance.json` are copied to `output-
 - `article-path` — absolute path to the article file (the text to make a cover for).
 - `output-dir` — absolute path of the directory where the final cover PNG is written.
 
-If the surface is missing, ask once which surface, listing the `label` column from the registry; cache the answer in the session (it stays in the transcript). If `article-path` or `output-dir` is missing, ask once for each. Do not guess any.
+If the surface is missing, ask once which surface, listing the `label` column from the registry; cache the answer in the session (it stays in the transcript). If `article-path` or `output-dir` is missing, ask once for each. **Default to New task only when no execution mode is stated; never infer rerun or checkpoint resume from existing files.**
 
 ## Workflow
 
-1. Resolve the surface, `article-path`, and `output-dir`. Read `references/surfaces.md`, look up the surface row, and read its `detail` file (`references/surfaces/<id>.md`). Build the **surface constraint** from the row: `aspectRatio` + `safeArea` + `bleed` + `text` + `cropBehavior` + `filename`. Create the temp run dir with subdirs `05-downloads/`, `08-generation-prompts/`, `09-candidates/`, `10-jury/`. Write `meta.json` (include `surface`, `article-path`, `output-dir`).
+1. Resolve `surface`, `article-path`, `output-dir`, **and the execution mode** (see **Run modes**). Read `references/surfaces.md`, look up the surface row, and read its `detail` file (`references/surfaces/<id>.md`). Build the **surface constraint** from the row: `aspectRatio` + `safeArea` + `bleed` + `text` + `cropBehavior` + `filename`.
+
+   - **New task / rerun:** create the fresh timestamped run dir with subdirs `05-downloads/`, `08-generation-prompts/`, `09-candidates/`, `10-jury/`; write `meta.json` with the mode. A rerun also records its source run.
+   - **Checkpoint resume:** select the named existing run dir; snapshot every existing output from the restart stage onward into `revisions/<UTC>/`, update its `meta.json`, and do not create a sibling run dir.
+
+   Continue with the selected run dir.
 2. **Idea + rhetoric + orientation + article title.** Spawn `idea-extractor` with the article path AND `references/poster-principles.md` AND `references/visual-rhetoric.md` AND the slop memory file when it exists (see **Slop memory**). It reviews the poster principles, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (with per-test breakdown and the two runners-up). It also carries the article's frontmatter `title` **verbatim** as `article_title` — it does NOT split or rephrase it; splitting is a layout decision. **Write** the full output to `01-idea-extractor.json`. Downstream uses the chosen idea, rhetoric, orientation, and `article_title` verbatim — and keeps the runners-up: the first runner-up's rhetoric drives one of the generation candidates (step 9).
 3. **[parallel] Palette direction.** Spawn `palette-planner` with the idea, rhetoric, and orientation. It develops a palette direction + recommends 2–3 palette artists. **Write** to `02-palette-planner.json`.
 4. **[parallel] Layout direction.** Spawn `layout-planner` with the idea, rhetoric, orientation, the surface constraint, AND the article's real title (from `01-idea-extractor.json`) AND `references/titling.md`. It develops a layout direction — including how the title is typeset on the banner (`title`: `article_title` + `kicker` + `main` + placement + relative size, both strings verbatim substrings of the real title) — and recommends 2–3 layout artists. **Write** to `03-layout-planner.json`. Steps 3 and 4 are independent — run them concurrently.
@@ -106,7 +127,7 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 9. **Generate.** Candidates come from TWO rhetorics, not one — `idea-extractor`'s chosen rhetoric drives two candidates and its first runner-up drives one, so a single weak rhetoric cannot poison the whole set. For each rhetoric in use, spawn `prompt-composer` (one spawn per rhetoric) to compose the generation prompt with FOUR sections: **Content** (rhetoric target), **Layout** (layout direction from step 4 + layout features from step 8), **Palette** (palette direction from step 3 + palette features from step 7), **Constraints** (the surface constraint + anti-slop exclusions). **Write the full prompt for each candidate to `08-generation-prompts/candidate-<n>.md` BEFORE generating.** Then delegate each candidate to the `image-gen` skill: pass it the candidate file's content **verbatim** as the prompt, the surface's `aspectRatio`, and an output path under `09-candidates/`. Do not rewrite, expand, paraphrase, or compose inline; the prompt sent to the generator MUST be byte-identical to the candidate file. Do NOT send any artwork image to the generator — pure text only. The `image-gen` skill picks the backend (Codex / Antigravity / Grok), maps the ratio, and dispatches.
 10. **[parallel] Blind jury.** Spawn one `slop-juror` per candidate — all concurrently, each in a fresh context, each given ONLY the candidate's image path and the criterion (no article, no rhetoric, no pipeline context: jurors stay blind). **Write** each verdict verbatim to `10-jury/candidate-<n>.md`, then append every `yes`/`borderline` finding to the slop memory (see **Slop memory**). The jury is **advisory**: verdicts are presented with the candidates; the user rules.
 11. **Record provenance.** Write `11-provenance.json` mapping each candidate to its rhetoric (chosen / runner-up), palette source + layout source + features, the backend that generated it (with any ratio deviation), and its jury verdict.
-12. **Ship + check.** Present the candidates WITH their jury verdicts; copy the user's pick to `12-final.png`, then to `output-dir` with the surface's `filename` (and copy `11-provenance.json` alongside if useful). Run `final-checks-verifier` (passing `article_title` as ground truth for the on-image text) for a light visual self-check of the generated cover. If the user rejects every candidate, use **Stage resume**: a slop-driven rejection resumes from stage 2 with the rejected tropes as exclusion constraints; a taste-driven rejection resumes from stage 9. The rigorous SAM-based crop-safety check is the host project's job (e.g. its preflight) — this skill does not ship a SAM stage. The host project handles any post-placement (e.g. copying into a post directory) and its own preflight — this skill stops at writing the cover to `output-dir`.
+12. **Ship + check.** Present the candidates WITH their jury verdicts; copy the user's pick to `12-final.png`, then to `output-dir` with the surface's `filename` (and copy `11-provenance.json` alongside if useful). Run `final-checks-verifier` (passing `article_title` as ground truth for the on-image text) for a light visual self-check. If the user rejects every candidate, choose the explicit next mode: a new **rerun** for a fresh attempt, or a **checkpoint resume** from stage 2 for slop-driven rhetoric repair / stage 9 for a taste-driven generation repair. The rigorous SAM-based crop-safety check is the host project's job (e.g. its preflight) — this skill does not ship a SAM stage. The host project handles any post-placement (e.g. copying into a post directory) and its own preflight — this skill stops at writing the cover to `output-dir`.
 
 ## Stacking rules
 
