@@ -50,7 +50,7 @@ CLARIFICATION_NEEDED: <question>
    - **rhetoric**: one device from the catalog, with `source` (the article concept, quoted or closely paraphrased — never invented), `target` (a concrete visual element you could point to on a canvas), and `why` (the structural reason this device carries this source→target).
    - Use **different devices and different source concepts** across the three. Do not produce three flavors of the same idea.
 7. **Score each candidate 0–5** on the five poster tests — atmosphere fit, thumbnail legibility, freshness, specificity, one read — and sum to 25. Reject any candidate whose image energy contradicts the article's register; it scores 0 on atmosphere fit no matter how well it maps the argument. **Freshness is judged against what image models produce by default, not against other posters:** if a candidate's concrete `target` is a current AI-image trope — glowing dashboards or holographic UI panels, word-tile walls, neon or purple gradients, glossy 3D-render finish, symmetrical cinematic compositions, dramatic rim-light glow — it scores at most 2 on freshness no matter how well it fits the article.
-8. **Keep the highest-scoring candidate.** Derive the **orientation** (color + tone) from the article's atmosphere and the chosen rhetoric — not from the device in isolation.
+8. **Keep the highest-scoring candidate.** Derive the **orientation** (color + tone) for the chosen candidate AND each runner-up from the article's atmosphere and the candidate's rhetoric — not from the device in isolation. The cover pipeline uses the chosen and first runner-up as independent art-direction tracks, so each must be complete.
 9. Output the chosen candidate, its score with the per-test breakdown, the two runners-up, and the article's real title (verbatim).
 
 ## Output Contract
@@ -75,12 +75,28 @@ article_title: <the frontmatter title, verbatim — do not split or rephrase>
 runners_up:
   - idea: <three words>
     score: <sum / 25>
-    device: <name>
-    why: <one clause why it lost to the chosen>
+    breakdown: atmosphere=<0-5> thumbnail=<0-5> freshness=<0-5> specificity=<0-5> one_read=<0-5>
+    rhetoric:
+      device: <name from the catalog>
+      source: <the article concept, grounded in the text>
+      target: <the concrete visual element — what to depict>
+      why: <one sentence: structural reason this device fits>
+    orientation:
+      color: <one phrase>
+      tone: <one phrase>
+    why_lost: <one clause why it lost to the chosen>
   - idea: <three words>
     score: <sum / 25>
-    device: <name>
-    why: <one clause why it lost to the chosen>
+    breakdown: atmosphere=<0-5> thumbnail=<0-5> freshness=<0-5> specificity=<0-5> one_read=<0-5>
+    rhetoric:
+      device: <name from the catalog>
+      source: <the article concept, grounded in the text>
+      target: <the concrete visual element — what to depict>
+      why: <one sentence: structural reason this device fits>
+    orientation:
+      color: <one phrase>
+      tone: <one phrase>
+    why_lost: <one clause why it lost to the chosen>
 ```
 
 **MUST:**
@@ -93,6 +109,7 @@ runners_up:
 - Ground `source` in the article text (quote or closely paraphrase); never invent it.
 - Output exactly three words for each idea. No phrases, no sentences.
 - Make each rhetoric `target` a concrete visual element, not an abstraction.
+- Derive an orientation for the chosen candidate AND both runners-up; the chosen and first runner-up become independent downstream art-direction tracks.
 
 **MUST NOT:**
 
@@ -100,4 +117,5 @@ runners_up:
 - Produce three variants of the same idea or the same device.
 - Pick a rhetoric that maps the argument well but misreads the article's register.
 - Grab a concept on instinct without the survey step.
+- Omit the complete rhetoric/orientation of a runner-up — downstream needs it as an independent track.
 - Re-emit the article or the references.
