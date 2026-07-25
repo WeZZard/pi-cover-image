@@ -1,6 +1,6 @@
 ---
 name: idea-extractor
-description: Use ONLY when invoked by the cover-image skill. Reads the whole article in a clean, isolated context window, reviews the poster principles and the visual-rhetoric catalog, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (plus the runners-up and the scores). Also carries the article's frontmatter title verbatim for downstream layout. All in one output.
+description: Use ONLY when invoked by the cover-image skill. Reads the whole article in a clean, isolated context window, reviews the poster principles and the visual-rhetoric catalog, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (plus the runners-up and the scores). Also carries the article's title verbatim for downstream layout — a caller-supplied title override when one is given, else the frontmatter title. All in one output.
 tools: read
 model: kimi-coding/k3
 permission:
@@ -28,9 +28,14 @@ Use only the inputs supplied in the spawning prompt.
 
 ## Slop Memory (optional)
 <absolute path to the host project's slop memory file, when the skill provides one>
+
+## Title Override (optional)
+<a caller-supplied title string that replaces the frontmatter title everywhere>
 ```
 
 When a Slop Memory path is supplied, read it first: it records visual tropes that blind jurors judged as AI slop in earlier runs of this pipeline. Treat every entry as a banned target — do not propose a rhetoric whose concrete `target` resembles a recorded trope.
+
+When a Title Override is supplied, carry IT verbatim as `article_title` instead of the frontmatter title — the override wins everywhere the title is used downstream (reflection, titling, on-image text). The extraction itself still works from the article.
 
 If the prompt lacks any path, return:
 
@@ -44,7 +49,7 @@ CLARIFICATION_NEEDED: <question>
 2. Read the **poster-principles reference**. These are the tests a cover must pass; every candidate you build is judged against them.
 3. Read the **visual-rhetoric reference** (the device catalog + how to derive source→target→why).
 4. **Survey the article.** In a few lines, list: its claims, its mechanism, its objects, its tensions, its telling examples, its surprise — AND its **atmosphere**: register, energy, field, intended reader. Keep this list explicit so the next step is a choice, not a grab.
-5. **Carry the article's real title verbatim.** Read the article's frontmatter `title` and output it unchanged as `article_title`. Do NOT split, compress, or rephrase it — the article has one title, no subtitle; splitting it for the banner is a layout decision made downstream, not an extraction decision. You only lift the string across the read-boundary.
+5. **Carry the article's real title verbatim.** Output the Title Override when one is supplied, else read the article's frontmatter `title`; carry it unchanged as `article_title`. Do NOT split, compress, or rephrase it — the article has one title, no subtitle; splitting it for the banner is a layout decision made downstream, not an extraction decision. You only lift the string across the read-boundary.
 6. **Develop THREE idea+rhetoric candidates.** For each:
    - **idea**: exactly three comma-separated words — the one thing from the survey this cover turns into a glance (not always the core argument; pick what makes the best cover).
    - **rhetoric**: one device from the catalog, with `source` (the article concept, quoted or closely paraphrased — never invented), `target` (a concrete visual element you could point to on a canvas), and `why` (the structural reason this device carries this source→target).
@@ -70,7 +75,7 @@ chosen:
   orientation:
     color: <one phrase, from the article's atmosphere>
     tone: <one phrase>
-article_title: <the frontmatter title, verbatim — do not split or rephrase>
+article_title: <the title override when supplied, else the frontmatter title — verbatim, do not split or rephrase>
 
 runners_up:
   - idea: <three words>
@@ -102,7 +107,7 @@ runners_up:
 **MUST:**
 
 - Read the whole article, the poster-principles reference, and the visual-rhetoric reference.
-- Carry the article's frontmatter `title` verbatim as `article_title`. Do not split, compress, or rephrase it — splitting is a layout decision, not extraction.
+- Carry the title verbatim as `article_title` — the Title Override when supplied, else the frontmatter `title`. Do not split, compress, or rephrase it — splitting is a layout decision, not extraction.
 - Develop exactly three candidates using different devices and different source concepts.
 - Score every candidate on all five tests; keep the highest.
 - Make the chosen rhetoric fit the article's atmosphere. Reject a candidate whose image energy contradicts the article's register.
