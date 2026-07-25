@@ -33,7 +33,7 @@ Tools: `../../scripts/seed-library/` — `fetch.py` (download with Wikimedia ver
 
 ## Subagent runtime
 
-The pipeline's subagents run on **`pi-subagents`** (the `subagent` tool family), which `package.json` wires in as a bundled dependency — pi loads its extension from `node_modules/pi-subagents/`, and the runtime discovers this package's agents through the `pi.subagents.agents` manifest key. No host-side setup: the 8 agents appear as package agents as soon as the package loads. If the host already installs `pi-subagents` itself (e.g. globally), exactly one copy must load: exclude the bundled one through the package filter in the host's settings, e.g. `{ "source": "<pi-cover-image source>", "extensions": ["-node_modules/pi-subagents/index.ts"] }`.
+The pipeline's subagents run on **`pi-subagents`** (the `subagent` tool family). The package declares it in `dependencies` but does **not** load the extension itself — pi fails hard when two extensions register the same tool, so the single running copy must be the host's own install (global or project): `pi install npm:pi-subagents`. Any running `pi-subagents` discovers this package's agents through the `pi.subagents.agents` manifest key; there is no other host-side setup. If the `subagent` tool or the 8 agents are missing, that install is what is absent.
 
 ## Concurrency
 

@@ -8,14 +8,13 @@ idea-extractor (reads the article in a clean context; develops 3 idea+rhetoric c
 
 Generation is delegated to the `image-gen` skill from `pi-image-gen`, which this package bundles (`bundledDependencies`). No image is sent to the generator — only text features.
 
-Subagents run on [`pi-subagents`](https://github.com/nicobailon/pi-subagents) (the `subagent` tool family), also wired in as a bundled dependency — pi loads its extension from `node_modules/pi-subagents/`, and the runtime discovers this package's agents through the `pi.subagents.agents` manifest key (no host-side setup). If the host already installs `pi-subagents` itself (e.g. globally), keep exactly one copy loaded by excluding the bundled one through the host's package filter:
+Subagents run on [`pi-subagents`](https://github.com/nicobailon/pi-subagents) (the `subagent` tool family). The package declares it in `dependencies` (version-pinned) but deliberately does **not** load the extension itself: pi fails hard when two extensions register the same tool, so the running copy must be exactly one install owned by the host — globally or per project:
 
-```json
-{
-  "source": "git:github.com/WeZZard/pi-cover-image",
-  "extensions": ["-node_modules/pi-subagents/index.ts"]
-}
+```bash
+pi install npm:pi-subagents
 ```
+
+Any running `pi-subagents` discovers this package's 8 agents through the `pi.subagents.agents` manifest key — no other host-side setup.
 
 ## Install
 
@@ -23,7 +22,7 @@ Subagents run on [`pi-subagents`](https://github.com/nicobailon/pi-subagents) (t
 pi install git:github.com/WeZZard/pi-cover-image
 ```
 
-`pi-image-gen` and `pi-subagents` are pulled in automatically as bundled dependencies.
+`pi-image-gen` is pulled in automatically as a bundled dependency. Install `pi-subagents` alongside (see above).
 
 ## Use
 
@@ -35,5 +34,5 @@ The skill takes `surface` + `article-path` + `output-dir` and writes the cover P
 skills/cover-image/        SKILL.md + references/ (surfaces.md, surfaces/<id>.md, poster-principles.md, visual-rhetoric.md, titling.md, final-checks.md)
 agents/                    8 subagents (idea-extractor, palette-planner, layout-planner, artist-works, artwork-feature-extractor, layout-generator, prompt-composer, final-checks-verifier)
 scripts/seed-library/      fetch.py, palette.py, recall.py, manifest.json, setup.zsh
-package.json               pi.extensions (bundled pi-subagents) + pi.skills + pi.subagents.agents; bundles pi-image-gen and pi-subagents
+package.json               pi.skills + pi.subagents.agents; bundles pi-image-gen; declares pi-subagents as the subagent runtime
 ```
