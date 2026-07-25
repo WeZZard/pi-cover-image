@@ -20,7 +20,7 @@ References under `references/`:
 - `titling.md` — how the article's single title is typeset on a banner, including when to split into kicker + main (read by layout-planner on text-carrying surfaces).
 - `final-checks.md` — criteria for the visual subagents.
 
-Subagents (spawned via the `Agent` tool from `@tintinweb/pi-subagents`, wired in as a bundled dependency — see **Subagent runtime** below):
+Subagents (spawned via the `subagent` tool from `pi-subagents`, wired in as a bundled dependency — see **Subagent runtime** below):
 - `idea-extractor` — reads the article in a clean context; extracts idea (3 words) + creates rhetoric (1 device + target) + orientation (color/tone).
 - `palette-planner` — given idea + rhetoric + orientation, develops a palette direction + recommends 2–3 palette artists.
 - `layout-planner` — given idea + rhetoric + orientation + surface constraint, develops a layout direction + recommends 2–3 layout artists.
@@ -33,18 +33,17 @@ Tools: `../../scripts/seed-library/` — `fetch.py` (download with Wikimedia ver
 
 ## Subagent runtime
 
-The pipeline's subagents run on **`@tintinweb/pi-subagents`** (the `Agent` / `get_subagent_result` / `steer_subagent` tools), which `package.json` wires in as a bundled dependency — pi loads its extension from `node_modules/@tintinweb/pi-subagents/`. If the host already installs `@tintinweb/pi-subagents` itself (e.g. globally), exactly one copy must load: exclude the bundled one through the package filter in the host's settings, e.g. `{ "source": "<pi-cover-image source>", "extensions": ["-node_modules/@tintinweb/pi-subagents/src/index.ts"] }`.
-
-**Agent bootstrap (once per project, verify each run).** The runtime discovers custom agents only from `<cwd>/.pi/agents/`, `<cwd>/.agents/agents/`, and `~/.pi/agent/agents/` — it does not scan packages. Before spawning any pipeline subagent in a project for the first time, symlink every file from this package's `agents/` directory (resolve it against this skill's directory: `../../agents/`) into `<cwd>/.pi/agents/`. Re-check at the start of each run and create any missing links — the check is eight `test -e` calls. After the bootstrap, spawn each subagent with the `Agent` tool using `subagent_type` set to the agent's name.
+The pipeline's subagents run on **`pi-subagents`** (the `subagent` tool family), which `package.json` wires in as a bundled dependency — pi loads its extension from `node_modules/pi-subagents/`, and the runtime discovers this package's agents through the `pi.subagents.agents` manifest key. No host-side setup: the 8 agents appear as package agents as soon as the package loads. If the host already installs `pi-subagents` itself (e.g. globally), exactly one copy must load: exclude the bundled one through the package filter in the host's settings, e.g. `{ "source": "<pi-cover-image source>", "extensions": ["-node_modules/pi-subagents/index.ts"] }`.
 
 ## Concurrency
 
-The runtime gives two execution modes — pick per step by the step's shape, not by habit:
+The runtime gives three execution shapes — pick per step by the step's shape, not by habit:
 
-- **Parallel (background):** issue several `Agent` calls with `run_in_background: true` **in a single message**. They run concurrently; a configurable queue (default 4) holds any overflow, and completions arrive as notifications (same-turn spawns are grouped by default). Use this when a step fans out independent sub-tasks whose results are all needed together.
-- **Blocking (foreground):** a foreground `Agent` call blocks the turn and returns the result inline. Multiple foreground calls in one message run one after another — never simultaneously. Use this when one result is needed immediately and there is nothing to overlap it with.
+- **Parallel (one call):** a single `subagent({ tasks: [ ... ] })` call runs its tasks concurrently and returns all results together (add `async: true` to background the whole group). Use this when a step fans out independent sub-tasks whose results are all needed together.
+- **Background (async):** `async: true` on any run returns a run id immediately and wakes the session on completion; several async calls may be issued in one message. Use this to overlap independent work with other work.
+- **Blocking (foreground):** a foreground `subagent` call blocks the turn and returns the result inline. Hard limit: **exactly one foreground execution call per message** — the runtime rejects a second one. Never issue two blocking calls in one message; use the parallel form or async instead.
 
-When a step below is marked **[parallel]**, its sub-tasks are independent and SHOULD run concurrently (prefer the parallel mode); when marked **[sequential]**, each sub-task consumes the previous one's output and must not be parallelized. Steps without a mark are single-spawn steps where either mode is correct.
+When a step below is marked **[parallel]**, its sub-tasks are independent and SHOULD run concurrently (prefer the one-call parallel form); when marked **[sequential]**, each sub-task consumes the previous one's output and must not be parallelized. Steps without a mark are single-spawn steps where either blocking or background is correct.
 
 ## Working directory
 

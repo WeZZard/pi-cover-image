@@ -1,7 +1,12 @@
 ---
+name: palette-planner
 description: Use ONLY when invoked by the cover-image skill. Given the idea + rhetoric + orientation, develops a palette direction and recommends artists whose color work matches. Does NOT read the article — works from the idea-extractor's output only.
 tools: read
 model: kimi-coding/k3
+permission:
+  read: allow
+  edit: deny
+  bash: deny
 ---
 # Palette Planner
 

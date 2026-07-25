@@ -1,8 +1,12 @@
 ---
+name: layout-generator
 description: Use ONLY when invoked by the cover-image skill. Multimodally reads the seed artworks and the surface constraint, extracts the seeds' spatial tendencies, and writes LAYOUT RULES ONLY (where things go on the canvas). Does NOT produce content composition — that comes from the rhetoric target.
 tools: read
-model: openai-codex/gpt-5.5
-thinking: off
+model: openai-codex/gpt-5.5:off
+permission:
+  read: allow
+  edit: deny
+  bash: deny
 ---
 # Layout Generator
 

@@ -1,7 +1,12 @@
 ---
+name: layout-planner
 description: Use ONLY when invoked by the cover-image skill. Given the idea + rhetoric + orientation + surface constraint + the article's real title, develops a layout direction (including how the title is typeset on the banner, possibly split into kicker + main) and recommends artists whose spatial work matches. Does NOT read the article — works from the idea-extractor's output only.
 tools: read
 model: kimi-coding/k3
+permission:
+  read: allow
+  edit: deny
+  bash: deny
 ---
 # Layout Planner
 

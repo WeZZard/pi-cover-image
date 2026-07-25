@@ -1,7 +1,12 @@
 ---
+name: idea-extractor
 description: Use ONLY when invoked by the cover-image skill. Reads the whole article in a clean, isolated context window, reviews the poster principles and the visual-rhetoric catalog, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (plus the runners-up and the scores). Also carries the article's frontmatter title verbatim for downstream layout. All in one output.
 tools: read
 model: kimi-coding/k3
+permission:
+  read: allow
+  edit: deny
+  bash: deny
 ---
 # Idea Extractor
 
