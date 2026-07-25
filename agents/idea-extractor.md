@@ -25,7 +25,12 @@ Use only the inputs supplied in the spawning prompt.
 
 ## Visual Rhetoric Reference
 <absolute path to references/visual-rhetoric.md>
+
+## Slop Memory (optional)
+<absolute path to the host project's slop memory file, when the skill provides one>
 ```
+
+When a Slop Memory path is supplied, read it first: it records visual tropes that blind jurors judged as AI slop in earlier runs of this pipeline. Treat every entry as a banned target — do not propose a rhetoric whose concrete `target` resembles a recorded trope.
 
 If the prompt lacks any path, return:
 
@@ -44,7 +49,7 @@ CLARIFICATION_NEEDED: <question>
    - **idea**: exactly three comma-separated words — the one thing from the survey this cover turns into a glance (not always the core argument; pick what makes the best cover).
    - **rhetoric**: one device from the catalog, with `source` (the article concept, quoted or closely paraphrased — never invented), `target` (a concrete visual element you could point to on a canvas), and `why` (the structural reason this device carries this source→target).
    - Use **different devices and different source concepts** across the three. Do not produce three flavors of the same idea.
-7. **Score each candidate 0–5** on the five poster tests — atmosphere fit, thumbnail legibility, freshness, specificity, one read — and sum to 25. Reject any candidate whose image energy contradicts the article's register; it scores 0 on atmosphere fit no matter how well it maps the argument.
+7. **Score each candidate 0–5** on the five poster tests — atmosphere fit, thumbnail legibility, freshness, specificity, one read — and sum to 25. Reject any candidate whose image energy contradicts the article's register; it scores 0 on atmosphere fit no matter how well it maps the argument. **Freshness is judged against what image models produce by default, not against other posters:** if a candidate's concrete `target` is a current AI-image trope — glowing dashboards or holographic UI panels, word-tile walls, neon or purple gradients, glossy 3D-render finish, symmetrical cinematic compositions, dramatic rim-light glow — it scores at most 2 on freshness no matter how well it fits the article.
 8. **Keep the highest-scoring candidate.** Derive the **orientation** (color + tone) from the article's atmosphere and the chosen rhetoric — not from the device in isolation.
 9. Output the chosen candidate, its score with the per-test breakdown, the two runners-up, and the article's real title (verbatim).
 

@@ -28,12 +28,29 @@ Subagents (spawned via the `subagent` tool from `pi-subagents`, wired in as a bu
 - `artwork-feature-extractor` — views downloaded works and extracts visual key features as text (one per image).
 - `layout-generator` — views downloaded works + surface constraint, extracts spatial tendencies, writes layout rules.
 - `prompt-composer` — takes all intermediate products (rhetoric, palette direction + features, layout direction + features, surface constraints) and composes the final generation prompt as markdown text. Kimi K3.
+- `slop-juror` — blind-judges one generated candidate against a single criterion (does it read as AI slop) with no knowledge of the pipeline; one juror per candidate. Kimi K3.
 
 Tools: `../../scripts/seed-library/` — `fetch.py` (download with Wikimedia verification + GAP fallback), `palette.py` (exact palette), `recall.py` (gallery + provenance). Generation backends are provided by the `image-gen` skill (Codex / Antigravity / Grok).
 
 ## Subagent runtime
 
-The pipeline's subagents run on **`pi-subagents`** (the `subagent` tool family). The package declares it in `dependencies` but does **not** load the extension itself — pi fails hard when two extensions register the same tool, so the single running copy must be the host's own install (global or project): `pi install npm:pi-subagents`. Any running `pi-subagents` discovers this package's agents through the `pi.subagents.agents` manifest key; there is no other host-side setup. If the `subagent` tool or the 8 agents are missing, that install is what is absent.
+The pipeline's subagents run on **`pi-subagents`** (the `subagent` tool family). The package declares it in `dependencies` but does **not** load the extension itself — pi fails hard when two extensions register the same tool, so the single running copy must be the host's own install (global or project): `pi install npm:pi-subagents`. Any running `pi-subagents` discovers this package's agents through the `pi.subagents.agents` manifest key; there is no other host-side setup. If the `subagent` tool or the 9 agents are missing, that install is what is absent.
+
+## Slop memory
+
+The pipeline keeps a **local, per-host memory of blind-jury slop findings** at `<host-project-root>/.pi/cover-image/slop-memory.jsonl` — one JSON object per line:
+
+```json
+{"ts": "<UTC ISO>", "article": "<article-path>", "run": "<run-dir>", "candidate": "<candidate file>", "verdict": "yes|borderline", "tropes": ["<noun phrase>", ...], "justification": "<two sentences>"}
+```
+
+- **Write:** after the jury step, append one line per candidate whose verdict is `yes` or `borderline`. Never append `no` verdicts.
+- **Read:** pass the memory file to `idea-extractor` (step 2) whenever it exists — recorded tropes are banned rhetoric targets. Never pass it to a juror: jurors stay blind.
+- **Ignore:** the memory is local learning, not source. It MUST be gitignored in the host project (add `.pi/cover-image/` to the host's `.gitignore`); never commit it.
+
+## Stage resume
+
+Every stage's output is a file in the run dir, so a run can restart from any stage instead of from zero. To **resume from stage N**: reuse the existing run dir, verify the artifacts of stages `1..N-1` are present (the layout above maps stage → file), add `"resumed-from": N` to `meta.json`, and re-execute from stage N onward. Restart far enough back to cover the stage whose output is suspect: suspect rhetoric → stage 2; suspect palette/layout → stages 3/4; suspect prompt → stage 9 (regeneration reuses `05-downloads/` and the features); suspect generation only → re-run `image-gen` on the existing `08-generation-prompts/`. When a resume follows a slop verdict, append the rejected tropes to the spawning prompt of the resumed stage as exclusion constraints (they are already in the slop memory).
 
 ## Concurrency
 
@@ -61,11 +78,12 @@ Use a fresh temp run dir per run (e.g. `$(mktemp -d -t cover-image-XXXX)`). Writ
   07-layout-features.json       # layout features extracted from layout artists' works
   08-generation-prompts/        # one .md per candidate, written before generation
   09-candidates/                # generated candidate PNGs (2-3)
-  10-provenance.json            # per candidate: palette source + layout source + rhetoric + features
-  11-final.png                  # the user's pick
+  10-jury/                      # one blind-jury verdict .md per candidate
+  11-provenance.json            # per candidate: palette source + layout source + rhetoric + features + jury verdict
+  12-final.png                  # the user's pick
 ```
 
-The final image (`11-final.png`) and `10-provenance.json` are copied to `output-dir` with the surface's `filename` at the end. The temp run dir may be kept for provenance or discarded.
+The final image (`12-final.png`) and `11-provenance.json` are copied to `output-dir` with the surface's `filename` at the end. The temp run dir may be kept for provenance or discarded.
 
 ## Input
 
@@ -77,17 +95,18 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 
 ## Workflow
 
-1. Resolve the surface, `article-path`, and `output-dir`. Read `references/surfaces.md`, look up the surface row, and read its `detail` file (`references/surfaces/<id>.md`). Build the **surface constraint** from the row: `aspectRatio` + `safeArea` + `bleed` + `text` + `cropBehavior` + `filename`. Create the temp run dir with subdirs `05-downloads/`, `08-generation-prompts/`, `09-candidates/`. Write `meta.json` (include `surface`, `article-path`, `output-dir`).
-2. **Idea + rhetoric + orientation + article title.** Spawn `idea-extractor` with the article path AND `references/poster-principles.md` AND `references/visual-rhetoric.md`. It reviews the poster principles, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (with per-test breakdown and the two runners-up). It also carries the article's frontmatter `title` **verbatim** as `article_title` — it does NOT split or rephrase it; splitting is a layout decision. **Write** the full output to `01-idea-extractor.json`. Downstream uses the chosen idea, rhetoric, orientation, and `article_title` verbatim.
+1. Resolve the surface, `article-path`, and `output-dir`. Read `references/surfaces.md`, look up the surface row, and read its `detail` file (`references/surfaces/<id>.md`). Build the **surface constraint** from the row: `aspectRatio` + `safeArea` + `bleed` + `text` + `cropBehavior` + `filename`. Create the temp run dir with subdirs `05-downloads/`, `08-generation-prompts/`, `09-candidates/`, `10-jury/`. Write `meta.json` (include `surface`, `article-path`, `output-dir`).
+2. **Idea + rhetoric + orientation + article title.** Spawn `idea-extractor` with the article path AND `references/poster-principles.md` AND `references/visual-rhetoric.md` AND the slop memory file when it exists (see **Slop memory**). It reviews the poster principles, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (with per-test breakdown and the two runners-up). It also carries the article's frontmatter `title` **verbatim** as `article_title` — it does NOT split or rephrase it; splitting is a layout decision. **Write** the full output to `01-idea-extractor.json`. Downstream uses the chosen idea, rhetoric, orientation, and `article_title` verbatim — and keeps the runners-up: the first runner-up's rhetoric drives one of the generation candidates (step 9).
 3. **[parallel] Palette direction.** Spawn `palette-planner` with the idea, rhetoric, and orientation. It develops a palette direction + recommends 2–3 palette artists. **Write** to `02-palette-planner.json`.
 4. **[parallel] Layout direction.** Spawn `layout-planner` with the idea, rhetoric, orientation, the surface constraint, AND the article's real title (from `01-idea-extractor.json`) AND `references/titling.md`. It develops a layout direction — including how the title is typeset on the banner (`title`: `article_title` + `kicker` + `main` + placement + relative size, both strings verbatim substrings of the real title) — and recommends 2–3 layout artists. **Write** to `03-layout-planner.json`. Steps 3 and 4 are independent — run them concurrently.
 5. **Find works.** Spawn `artist-works` with all artists from both planners + the rhetoric target. **Write** to `04-artist-works.json`.
 6. **Download works.** For each found work, download with `fetch.py` into `05-downloads/`.
 7. **[parallel] Extract palette features.** Spawn one `artwork-feature-extractor` per palette artist's downloaded work — all of them concurrently. **Write** to `06-palette-features.json`.
 8. **[parallel] Extract layout features.** Spawn one `artwork-feature-extractor` per layout artist's downloaded work — all of them concurrently (steps 7 and 8 may also overlap; the runtime's queue handles overflow). **Write** to `07-layout-features.json`.
-9. **Generate.** `prompt-composer` composes the generation prompt with FOUR sections: **Content** (rhetoric target), **Layout** (layout direction from step 4 + layout features from step 8), **Palette** (palette direction from step 3 + palette features from step 7), **Constraints** (the surface constraint: aspect ratio, safe area, bleed, text rules, crop behavior). **Write the full prompt for each candidate to `08-generation-prompts/candidate-<n>.md` BEFORE generating.** Then delegate each candidate to the `image-gen` skill: pass it the candidate file's content **verbatim** as the prompt, the surface's `aspectRatio`, and an output path under `09-candidates/`. Do not rewrite, expand, paraphrase, or compose inline; the prompt sent to the generator MUST be byte-identical to the candidate file. Do NOT send any artwork image to the generator — pure text only. The `image-gen` skill picks the backend (Codex / Antigravity / Grok), maps the ratio, and dispatches.
-10. **Record provenance.** Write `10-provenance.json` mapping each candidate to its palette source + layout source + rhetoric + features, and the backend that generated it (with any ratio deviation).
-11. **Ship + check.** Copy the user's pick to `11-final.png`, then to `output-dir` with the surface's `filename` (and copy `10-provenance.json` alongside if useful). Run `final-checks-verifier` (passing `article_title` as ground truth for the on-image text) for a light visual self-check of the generated cover. The rigorous SAM-based crop-safety check is the host project's job (e.g. its preflight) — this skill does not ship a SAM stage. The host project handles any post-placement (e.g. copying into a post directory) and its own preflight — this skill stops at writing the cover to `output-dir`.
+9. **Generate.** Candidates come from TWO rhetorics, not one — `idea-extractor`'s chosen rhetoric drives two candidates and its first runner-up drives one, so a single weak rhetoric cannot poison the whole set. For each rhetoric in use, spawn `prompt-composer` (one spawn per rhetoric) to compose the generation prompt with FOUR sections: **Content** (rhetoric target), **Layout** (layout direction from step 4 + layout features from step 8), **Palette** (palette direction from step 3 + palette features from step 7), **Constraints** (the surface constraint + anti-slop exclusions). **Write the full prompt for each candidate to `08-generation-prompts/candidate-<n>.md` BEFORE generating.** Then delegate each candidate to the `image-gen` skill: pass it the candidate file's content **verbatim** as the prompt, the surface's `aspectRatio`, and an output path under `09-candidates/`. Do not rewrite, expand, paraphrase, or compose inline; the prompt sent to the generator MUST be byte-identical to the candidate file. Do NOT send any artwork image to the generator — pure text only. The `image-gen` skill picks the backend (Codex / Antigravity / Grok), maps the ratio, and dispatches.
+10. **[parallel] Blind jury.** Spawn one `slop-juror` per candidate — all concurrently, each in a fresh context, each given ONLY the candidate's image path and the criterion (no article, no rhetoric, no pipeline context: jurors stay blind). **Write** each verdict verbatim to `10-jury/candidate-<n>.md`, then append every `yes`/`borderline` finding to the slop memory (see **Slop memory**). The jury is **advisory**: verdicts are presented with the candidates; the user rules.
+11. **Record provenance.** Write `11-provenance.json` mapping each candidate to its rhetoric (chosen / runner-up), palette source + layout source + features, the backend that generated it (with any ratio deviation), and its jury verdict.
+12. **Ship + check.** Present the candidates WITH their jury verdicts; copy the user's pick to `12-final.png`, then to `output-dir` with the surface's `filename` (and copy `11-provenance.json` alongside if useful). Run `final-checks-verifier` (passing `article_title` as ground truth for the on-image text) for a light visual self-check of the generated cover. If the user rejects every candidate, use **Stage resume**: a slop-driven rejection resumes from stage 2 with the rejected tropes as exclusion constraints; a taste-driven rejection resumes from stage 9. The rigorous SAM-based crop-safety check is the host project's job (e.g. its preflight) — this skill does not ship a SAM stage. The host project handles any post-placement (e.g. copying into a post directory) and its own preflight — this skill stops at writing the cover to `output-dir`.
 
 ## Stacking rules
 
@@ -101,7 +120,9 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 - Let `prompt-composer` compose the generation prompt from all intermediate products — do not compose it yourself.
 - Render the title **verbatim** from `layout-planner`'s `title` block (`article_title` / `kicker` / `main`) — the article's real title, typeset per the titling reference. Do not invent, rephrase, or re-split the title; the main agent never authors cover text.
 - **Write each candidate's full prompt to `08-generation-prompts/candidate-<n>.md` before generating, and pass that file's content verbatim to the `image-gen` skill.** The prompt sent to the generator must equal the file's content — no inline rewriting, expanding, or paraphrasing.
-- Generate 2–3 candidates from the same composed prompt, issued together so they generate concurrently (multiple `codex_generate_image` calls in one message, or concurrent `agy`/`grok` script runs).
+- Generate 2–3 candidates issued together so they generate concurrently (multiple `codex_generate_image` calls in one message, or concurrent `agy`/`grok` script runs) — two from the chosen rhetoric, one from the first runner-up.
+- Keep jurors blind: a `slop-juror` spawn carries only the image path and the criterion — never the article, the rhetoric, the prompt, or other verdicts.
+- Write every jury verdict to `10-jury/` and append every `yes`/`borderline` finding to the slop memory before presenting candidates.
 
 **MUST NOT:**
 
@@ -109,7 +130,9 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 - Send a prompt to the generator that differs from what is written in `08-generation-prompts/candidate-<n>.md`, or generate before the candidate file is written.
 - Invent or rephrase the cover title — it comes from `idea-extractor`'s `article_title` and is typeset by `layout-planner`; the main agent never authors or splits it.
 - Mix palette and layout sources — keep them separate until the generation prompt.
-- Skip provenance or the final visual checks.
+- Skip provenance, the blind jury, or the final visual checks.
+- Commit the slop memory to git — it is local, gitignored learning.
+- Let a juror see anything but its one image and the criterion.
 - Put text on the WeChat 头条 banner.
 
 ## Limits

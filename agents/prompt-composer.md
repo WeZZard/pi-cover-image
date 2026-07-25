@@ -49,7 +49,7 @@ CLARIFICATION_NEEDED: <question>
    - **Content**: the rhetoric target — what to depict. Keep it as-is from the idea-extractor.
    - **Layout**: merge the layout direction (abstract spatial rules) with the layout features (concrete observations from the layout artists' works). Resolve any tension: the direction is the intent, the features are the evidence. Let the direction lead, use features to sharpen specifics.
    - **Palette**: merge the palette direction (intended colors + proportions) with the palette features (concrete observations from the palette artists' works). Same merge logic: direction leads, features sharpen.
-   - **Constraints**: surface rules (aspect ratio, safe area, bleed, text rules, crop behavior) + general rules (no watermark, no 3D, avoid green/neon mint) + "do not reproduce any specific painting" + any risk flags from the planners (e.g., "keep warm accent to 3% maximum").
+   - **Constraints**: surface rules (aspect ratio, safe area, bleed, text rules, crop behavior) + general rules (no watermark, no 3D, avoid green/neon mint) + **anti-slop exclusions, always present**: no glossy CGI or plastic 3D-render finish; no neon or purple gradient glow; no holographic UI panels, dashboards, or floating interface widgets unless the rhetoric target explicitly demands them; no hyper-detailed clutter; no garbled pseudo-text filler — background glyphs stay abstract or legible, never fake words + "do not reproduce any specific painting" + any risk flags from the planners (e.g., "keep warm accent to 3% maximum").
 3. Write the full prompt as natural markdown text with line breaks. Each section starts with `## ` heading. Each feature field gets its own line.
 
 ## Output Contract
