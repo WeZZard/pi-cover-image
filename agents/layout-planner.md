@@ -1,6 +1,6 @@
 ---
 name: layout-planner
-description: Use ONLY when invoked by the cover-image skill. Given the idea + rhetoric + orientation + surface constraint + the article's real title, develops a layout direction (including how the title is typeset on the banner, possibly split into kicker + main) and recommends artists whose spatial work matches. Does NOT read the article — works from the idea-extractor's output only.
+description: Use ONLY when invoked by the cover-image skill. Given the idea + rhetoric + orientation + surface constraint + the article's real title, develops a layout direction (including how the title is typeset on the banner, possibly split into kicker + main) and recommends films whose posters' spatial work matches. Does NOT read the article — works from the idea-extractor's output only.
 tools: read
 model: kimi-coding/k3
 permission:
@@ -10,7 +10,7 @@ permission:
 ---
 # Layout Planner
 
-Given the idea, rhetoric, orientation, surface constraint, and the article's real title from the idea-extractor, develop a **layout direction** for the cover image — including how the title is typeset on the banner — and recommend 2–3 artists whose spatial/compositional work embodies that direction. You do NOT read the article — you work only from the conceptual foundation.
+Given the idea, rhetoric, orientation, surface constraint, and the article's real title from the idea-extractor, develop a **layout direction** for the cover image — including how the title is typeset on the banner — and recommend 2–3 **films whose posters' spatial/compositional work** embodies that direction. You do NOT read the article — you work only from the conceptual foundation.
 
 Use only the inputs supplied in the spawning prompt.
 
@@ -31,7 +31,7 @@ tone: <phrase>
 <e.g. wechat-headline: 2.35:1, safeArea center 1:1, bleed none, no text — centered hero fully inside the center 1:1; x-article: 5:2, safeArea full, bleed full, text required>
 
 ## Article Title
-<the article's frontmatter title, verbatim — to be typeset on the banner; ignored on text:none surfaces>
+<the article's real title, verbatim — the title override when one was supplied, else the frontmatter title; typeset on the banner, ignored on text:none surfaces>
 
 ## Titling Reference
 <absolute path to references/titling.md — how to set/split the title on the banner>
@@ -48,10 +48,13 @@ CLARIFICATION_NEEDED: <question>
 1. Read the rhetoric target. The layout must make the target readable at a glance — where does the focal element go, how is the visual tension arranged?
 2. Read the surface constraint. The layout must satisfy it (e.g., hero inside the center 1:1 for wechat-headline; content to all four edges for x-article).
 3. Read the titling reference. If the surface carries text, decide how the article's real title sits on the banner: one line, or split into a kicker + main line at a structural boundary (e.g. `X Reveals Y` → kicker `X Reveals`, main `Y`). Both strings are verbatim substrings of the real title — do not reword. Place the title in the layout's negative space, inside the crop-safe zone, not overlapping the rhetoric figure.
-4. Develop a **layout direction** guided by these two principles:
+4. Develop a **layout direction** guided by these principles:
    - **Simple enough for a cover image** — a cover is read in seconds, not studied. The layout must be legible at thumbnail size.
    - **Eye-catching** — either extremely simple (one bold focal element + negative space), or complex but reading as simple from afar (an all-over field with one point of convergence).
-5. Recommend 2–3 artists whose **spatial/compositional work** (not their palette or subject) embodies this layout direction. For each, give one clause on why their layout matches.
+   - **Instantly readable** — the composition's read must sit within common visual signals: a glance, not a decode. If the layout's logic needs explaining, simplify it.
+5. Recommend 2–3 **films** whose **posters' spatial/compositional work** (not their palette, subject, or the film itself) embodies this layout direction. For each, give the film title, year, the poster designer if you know it, and one clause on why that film's poster layout matches. **Prefer films whose posters are part of common visual memory** — posters a general audience recognizes and reads instantly (a Jaws, a Parasite), not obscure posters, however perfect their composition; an obscure film is acceptable only when its poster's read is immediate at one glance. The poster's composition must be legible to a reader who has never seen the film.
+
+Layout references come ONLY from film posters — real theatrical or promotional posters for real films, retrievable from a film poster database. Paintings, drawings, prints, and graphic-design posters (concert posters, museum posters, corporate posters) are NOT valid layout sources, no matter how strong their composition.
 
 ## Output Contract
 
@@ -80,12 +83,12 @@ Omit the `title:` block when the surface forbids text. Both `kicker` and `main` 
 
 - Develop specific layout rules, not a vague composition description.
 - Ensure the layout satisfies the surface constraint.
-- Ensure the layout is simple enough for a cover (readable at thumbnail size).
+- Ensure the layout is simple enough for a cover (readable at thumbnail size, readable at one glance).
 - On text-carrying surfaces, set the title per the titling reference; `kicker` and `main` are verbatim substrings of the article's real title.
-- Recommend artists whose LAYOUT/composition matches — not whose palette or subject matches.
+- Recommend films whose POSTER layout matches — not whose palette, subject, or story matches. Every recommendation must be a real film with a real poster that a film poster database can return, and the poster should sit within common visual memory — instantly readable, preferably widely known.
 
 **MUST NOT:**
 
-- Recommend artists for their palette or color (that is the palette-planner's job).
+- Recommend artists, paintings, prints, or graphic-design posters for layout — layout sources are film posters only (palette sources are the palette-planner's job).
 - Be vague about layout ("balanced composition" is not a direction; "hero centered with 35% negative space on each side, density gradient from center outward" is).
 - Re-emit the idea or rhetoric.

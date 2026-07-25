@@ -1,6 +1,6 @@
 ---
 name: idea-extractor
-description: Use ONLY when invoked by the cover-image skill. Reads the whole article in a clean, isolated context window, reviews the poster principles and the visual-rhetoric catalog, surveys the article, develops THREE idea+rhetoric candidates, scores them on the five poster tests, and outputs the highest-scoring one (plus the runners-up and the scores). Also carries the article's title verbatim for downstream layout — a caller-supplied title override when one is given, else the frontmatter title. All in one output.
+description: Use ONLY when invoked by the cover-image skill. Reads the whole article in a clean, isolated context window, reviews the poster principles and the visual-rhetoric catalog, surveys the article, develops THREE idea+rhetoric candidates, scores them on the poster tests in the principles reference, and outputs the highest-scoring one (plus the runners-up and the scores). Also carries the article's title verbatim for downstream layout — a caller-supplied title override when one is given, else the frontmatter title. All in one output.
 tools: read
 model: kimi-coding/k3
 permission:
@@ -54,7 +54,7 @@ CLARIFICATION_NEEDED: <question>
    - **idea**: exactly three comma-separated words — the one thing from the survey this cover turns into a glance (not always the core argument; pick what makes the best cover).
    - **rhetoric**: one device from the catalog, with `source` (the article concept, quoted or closely paraphrased — never invented), `target` (a concrete visual element you could point to on a canvas), and `why` (the structural reason this device carries this source→target).
    - Use **different devices and different source concepts** across the three. Do not produce three flavors of the same idea.
-7. **Score each candidate 0–5** on the five poster tests — atmosphere fit, thumbnail legibility, freshness, specificity, one read — and sum to 25. Reject any candidate whose image energy contradicts the article's register; it scores 0 on atmosphere fit no matter how well it maps the argument. **Freshness is judged against what image models produce by default, not against other posters:** if a candidate's concrete `target` is a current AI-image trope — glowing dashboards or holographic UI panels, word-tile walls, neon or purple gradients, glossy 3D-render finish, symmetrical cinematic compositions, dramatic rim-light glow — it scores at most 2 on freshness no matter how well it fits the article.
+7. **Score each candidate 0–5** on every poster test in the principles reference and sum. Reject any candidate whose image energy contradicts the article's register; it scores 0 on atmosphere fit no matter how well it maps the argument. **Freshness is judged against what image models produce by default, not against other posters:** if a candidate's concrete `target` is a current AI-image trope — glowing dashboards or holographic UI panels, word-tile walls, neon or purple gradients, glossy 3D-render finish, symmetrical cinematic compositions, dramatic rim-light glow — it scores at most 2 on freshness no matter how well it fits the article. **Common visual memory is judged against what a general reader recognizes in one glance:** if the target must first be identified before it can be read — an antique craft tool, a specialist's instrument — it scores at most 2 on common visual memory.
 8. **Keep the highest-scoring candidate.** Derive the **orientation** (color + tone) for the chosen candidate AND each runner-up from the article's atmosphere and the candidate's rhetoric — not from the device in isolation. The cover pipeline uses the chosen and first runner-up as independent art-direction tracks, so each must be complete.
 9. Output the chosen candidate, its score with the per-test breakdown, the two runners-up, and the article's real title (verbatim).
 
@@ -109,7 +109,7 @@ runners_up:
 - Read the whole article, the poster-principles reference, and the visual-rhetoric reference.
 - Carry the title verbatim as `article_title` — the Title Override when supplied, else the frontmatter `title`. Do not split, compress, or rephrase it — splitting is a layout decision, not extraction.
 - Develop exactly three candidates using different devices and different source concepts.
-- Score every candidate on all five tests; keep the highest.
+- Score every candidate on every test in the principles reference; keep the highest.
 - Make the chosen rhetoric fit the article's atmosphere. Reject a candidate whose image energy contradicts the article's register.
 - Ground `source` in the article text (quote or closely paraphrase); never invent it.
 - Output exactly three words for each idea. No phrases, no sentences.

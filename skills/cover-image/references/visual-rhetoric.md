@@ -35,6 +35,7 @@ The source concept must come from the survey in step 2, never grabbed. The cente
 
 - Match the device to the relationship the thesis hinges on, not to the topic's nouns.
 - Avoid the cliché native to each device (no lightbulb for ideas, no chain for freedom, no heart for love) unless you recompose it into a fresh relationship.
+- **The target must live in common visual memory.** Whatever the device, the concrete figure it is applied to must be a visual signal the general public already carries — recognized in one glance, not identified and then read. A metaphor whose vehicle must first be explained is a failed metaphor for a cover, however exact the mapping. Familiar object, fresh relationship: the recognition is instant, the use is new.
 - Prefer the device the article's tension already implies: a paradox wants irony or juxtaposition; a mechanism wants analogy; a stand-in wants metonymy or synecdoche; a scale gap wants exaggeration.
 - Pick 2–3 devices so the skill can generate a candidate per device and the user can choose.
 
