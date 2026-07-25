@@ -1,12 +1,7 @@
 ---
-name: artist-works
 description: Use ONLY when invoked by the cover-image skill. For each recommended artist, names a signature work and the reason, then agentically searches the web to find the artwork online (Google Art Project or Wikimedia Commons). Works in as many turns as it needs within one session.
-tools: read, web_search, fetch_content
+tools: "read, ext:pi-web-access/web_search, ext:pi-web-access/fetch_content, ext:pi-web-access/get_search_content"
 model: kimi-coding/k3
-permission:
-  read: allow
-  edit: deny
-  bash: deny
 ---
 # Artist Works
 

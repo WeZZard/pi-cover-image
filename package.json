@@ -1,15 +1,16 @@
 {
   "name": "pi-cover-image",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cover image pipeline for articles: idea-extractor (3 candidates, scored) → palette/layout planners → artist-works → feature extraction → prompt-composer → generation via pi-image-gen. Surface-driven (X, WeChat, Xiaohongshu, generic ratios).",
   "keywords": ["pi-package"],
   "license": "MIT",
   "pi": {
-    "skills": ["./skills", "./node_modules/pi-image-gen/skills"],
-    "subagents": { "agents": ["./agents"] }
+    "extensions": ["./node_modules/@tintinweb/pi-subagents/src/index.ts"],
+    "skills": ["./skills", "./node_modules/pi-image-gen/skills"]
   },
   "dependencies": {
-    "pi-image-gen": "github:WeZZard/pi-image-gen"
+    "pi-image-gen": "github:WeZZard/pi-image-gen",
+    "@tintinweb/pi-subagents": "^0.14.3"
   },
-  "bundledDependencies": ["pi-image-gen"]
+  "bundledDependencies": ["pi-image-gen", "@tintinweb/pi-subagents"]
 }

@@ -1,12 +1,7 @@
 ---
-name: prompt-composer
 description: Use ONLY when invoked by the cover-image skill. Takes all intermediate products (rhetoric, palette direction, palette features, layout direction, layout features, surface constraints) and composes the final generation prompt as a well-structured markdown text. The main agent then passes this prompt to codex_generate_image.
 tools: read
 model: kimi-coding/k3
-permission:
-  read: allow
-  edit: deny
-  bash: deny
 ---
 # Prompt Composer
 

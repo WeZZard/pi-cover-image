@@ -1,12 +1,8 @@
 ---
-name: artwork-feature-extractor
 description: Use ONLY when invoked by the cover-image skill. Views one artwork and extracts ALL visual key features (palette, texture, composition, pattern, material, edge behavior) as text. One subagent per image. The extracted features go into the generation prompt as text — no image is sent to the generator.
 tools: read
-model: openai-codex/gpt-5.5:off
-permission:
-  read: allow
-  edit: deny
-  bash: deny
+model: openai-codex/gpt-5.5
+thinking: off
 ---
 # Artwork Feature Extractor
 

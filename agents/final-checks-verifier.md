@@ -1,12 +1,8 @@
 ---
-name: final-checks-verifier
 description: Use ONLY when invoked by the cover-image skill to run the final visual checks on a generated cover. Reads the image and judges style conformity, rhetoric correctness, text correctness, and surface constraints against the final-checks reference, an optional layout reference, and the surface detail file.
 tools: read
-model: openai-codex/gpt-5.5:off
-permission:
-  read: allow
-  edit: deny
-  bash: deny
+model: openai-codex/gpt-5.5
+thinking: off
 ---
 # Final Checks Verifier
 
