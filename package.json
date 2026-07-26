@@ -1,6 +1,6 @@
 {
   "name": "pi-cover-image",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Cover image pipeline for articles: idea-extractor (3 candidates, scored) → palette/layout planners → artist-works → feature extraction → prompt-composer → generation via pi-image-gen. Surface-driven (X, WeChat, Xiaohongshu, generic ratios).",
   "keywords": [
     "pi-package"

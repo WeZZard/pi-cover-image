@@ -64,9 +64,7 @@ When the caller explicitly asks to run an earlier task again, this is a **rerun*
 
 ### 3. Checkpoint resume
 
-When the caller explicitly asks to continue an earlier task **from stage N**, this is a **checkpoint resume**. This is the only mode allowed to use the original run dir. Before re-executing, verify the artifacts from stages `1..N-1`, record `"mode": "checkpoint-resume"`, `"resume-from-stage": N`, and a UTC timestamp in that run's `meta.json`, then re-execute stage N and every following stage in the same dir.
-
-If any outputs at or after stage N already exist, copy them to `revisions/<UTC>/` inside the same run dir before overwriting them. The checkpoint remains the active run, while the snapshot preserves the discarded downstream attempt for diagnosis.
+When the caller explicitly asks to continue an earlier task **from stage N**, this is a **checkpoint resume**. Even here, the source run dir is immutable: **two generations never share a directory.** Create a fresh timestamped run dir, copy the verified artifacts from stages `1..N-1` out of the source dir into it, record `"mode": "checkpoint-resume"`, `"resume-from-stage": N`, `"source-run": "<prior run dir>"`, and a UTC timestamp in the NEW dir's `meta.json`, then re-execute stage N and every following stage in the new dir. The source run stays frozen as provenance — nothing is written into it, so no snapshot mechanism is needed.
 
 Restart far enough back to cover the stage whose output is suspect: suspect rhetoric → stage 2; suspect title-link selection → stage 3; suspect palette/layout → stages 4/5; suspect prompt → stage 10; suspect generation only → re-run `image-gen` on the existing `09-generation-prompts/`. When a checkpoint resume follows a slop verdict, append the rejected tropes to the spawning prompt of the resumed stage as exclusion constraints (they are already in the slop memory).
 
@@ -118,7 +116,7 @@ If the surface is missing, ask once which surface, listing the `label` column fr
 1. Resolve `surface`, `article-path`, `output-dir`, **and the execution mode** (see **Run modes**). Read `references/surfaces.md`, look up the surface row, and read its `detail` file (`references/surfaces/<id>.md`). Build the **surface constraint** from the row: `aspectRatio` + `safeArea` + `bleed` + `text` + `cropBehavior` + `filename`.
 
    - **New task / rerun:** create the fresh timestamped run dir with subdirs `06-downloads/`, `09-generation-prompts/`, `10-candidates/`, `11-jury/`; write `meta.json` with the mode. A rerun also records its source run.
-   - **Checkpoint resume:** select the named existing run dir; snapshot every existing output from the restart stage onward into `revisions/<UTC>/`, update its `meta.json`, and do not create a sibling run dir.
+   - **Checkpoint resume:** create a fresh timestamped run dir, copy stages `1..N-1` from the named source dir into it, record the source run in the new dir's `meta.json`, and leave the source dir untouched.
 
    Continue with the selected run dir.
 2. **Idea + rhetoric + orientation + article title.** Spawn `idea-extractor` with the article path AND `references/poster-principles.md` AND `references/visual-rhetoric.md` AND the slop memory file when it exists (see **Slop memory**) AND the `title-override` when one is supplied. It reviews the poster principles, surveys the article, develops THREE idea+rhetoric candidates, scores them on the poster tests in the reference, and outputs the highest-scoring one (with per-test breakdown and the two runners-up). It also carries the article's frontmatter `title` **verbatim** as `article_title` — it does NOT split or rephrase it; splitting is a layout decision. **Write** the full output to `01-idea-extractor.json`.
