@@ -27,6 +27,13 @@ This reference is read by the `final-checks-verifier` subagent, alongside an opt
 - The composition honors the surface's `safeArea` and `bleed`: critical content survives the surface's crop behavior; where `bleed` is `full`, content runs to all four edges with no margin frame; where `bleed` is `none`, content stays inside the safe area.
 - The text rule is met: `required` surfaces carry title + subtitle verbatim; `none` surfaces carry no text; `optional` surfaces carry text only when the surface choice asked for it.
 
+## Design coherence
+
+- Internal consistency: every product matches its tool — a row of stamped/cut shapes is identical to the shape the stamp or cutter would make; repeated units meant to be identical ARE identical.
+- Physical plausibility: every object's structure and spatial relationships could exist — no impossible cross-sections, no tools that could not function; shadows, contact points, and occlusions agree.
+- Typographic harmony: the typeface belongs to the image's visual world — a classical painterly register takes a serif or hand-cut letter, a modern technical register takes a sans; no default techno sans on a classical scene.
+- Overall: the cover reads as something a competent designer would ship — even deliberate visual conflict has its reasons; nothing is contradictory for no reason.
+
 ## Verdict
 
 Return one line per check: `<check>: PASS` or `<check>: NONE — <one clause>`. The cover passes overall only when every applicable check is `PASS`.
